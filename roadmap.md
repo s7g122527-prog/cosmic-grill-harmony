@@ -18,3 +18,11 @@
 - [x] Keep the existing menu-book concept while adding caddy guidance and systematic navigation.
 - [x] Verify the full interaction and layout on desktop and phone; cover, next/previous progression, caddy status, and dish spread render without page errors.
 - [x] Move the deal ribbons to sit directly after the hero and before the menu, with the two ribbons separated so no text is clipped.
+
+# Storefront checkout and access UX
+- [ ] Replace the menu's horizontal category slider with a clear wrapping filter control and align the heading color with the storefront.
+- [ ] Give the Takiii launcher a more distinctive flame-themed animated treatment without changing its guest-only chat behavior.
+- [ ] Reorganize the cart into a guided caddy checkout with cleaner item, fulfillment, verification, payment, and summary states.
+- [ ] Place OTP entry beside its phone field, use six animated code cells, and lock verified numbers clearly.
+- [ ] Add obvious Home, Sign in, and Create account navigation across access screens.
+- [ ] Verify menu filtering, Takiii, cart verification states, payment selection, and access navigation on desktop and phone.

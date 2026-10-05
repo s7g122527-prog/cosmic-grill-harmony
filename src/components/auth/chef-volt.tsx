@@ -85,7 +85,7 @@ export function VoltScene({
         volt.reducedMotion && "volt-calm",
       )}
     >
-      <a href="#auth-form" className="volt-skip">
+      <a href="#auth-form" className="volt-skip sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-cream focus:px-4 focus:py-2 focus:text-charcoal">
         Skip to the {title.toLowerCase()} form
       </a>
 

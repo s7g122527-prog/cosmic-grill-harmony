@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChefHat, Flame, Pause, Play } from "lucide-react";
+import { ArrowLeft, ChefHat, Flame, Pause, Play } from "lucide-react";
 
 import authChef from "@/assets/auth-chef-anime.png";
 import { AuthFlowRail } from "@/components/auth/flow-rail";
@@ -88,6 +88,15 @@ export function VoltScene({
       <a href="#auth-form" className="volt-skip">
         Skip to the {title.toLowerCase()} form
       </a>
+
+      <Link
+        to="/"
+        className="auth-home-link"
+        aria-label="Back to Kennedy Moon Grill home"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Back to home
+      </Link>
 
       <div ref={volt.sceneRef} className="relative mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[1fr_1fr]">
         <section className="order-2 flex flex-col items-start lg:order-1">

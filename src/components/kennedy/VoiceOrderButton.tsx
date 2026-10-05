@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUp, Flame, MessageCircle, Mic, MicOff, X } from "lucide-react";
+import { ArrowUp, Flame, MessageCircle, Mic, MicOff, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -104,16 +104,18 @@ export function VoiceOrderButton() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with Takiii"
-          className="group h-14 rounded-full border-2 border-cream/80 bg-flame px-2.5 pr-4 text-cream shadow-[var(--shadow-pill)] hover:bg-flame-dark sm:h-16 sm:px-3 sm:pr-5"
+          className="takiii-launcher group h-14 rounded-full px-2.5 pr-4 text-cream sm:h-16 sm:px-3 sm:pr-5"
         >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream text-flame shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--color-flame)_22%,transparent)] sm:h-11 sm:w-11">
+          <span className="takiii-launcher__spark takiii-launcher__spark--one" aria-hidden="true" />
+          <span className="takiii-launcher__spark takiii-launcher__spark--two" aria-hidden="true" />
+          <span className="takiii-launcher__icon grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream text-flame sm:h-11 sm:w-11">
             <Flame className="h-5 w-5 fill-current sm:h-6 sm:w-6" aria-hidden="true" />
           </span>
           <span className="flex min-w-0 flex-col items-start text-left leading-tight">
             <span className="font-display text-sm font-extrabold tracking-normal">Takiii</span>
             <span className="font-body text-[0.65rem] font-bold text-cream/80 sm:text-xs">Ask about the menu</span>
           </span>
-          <MessageCircle className="ml-1 h-5 w-5 transition-transform group-hover:-rotate-6" aria-hidden="true" />
+          <Sparkles className="ml-1 h-5 w-5 transition-transform group-hover:rotate-12" aria-hidden="true" />
         </Button>
       </motion.div>
 

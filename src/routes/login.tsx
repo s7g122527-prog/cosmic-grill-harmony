@@ -4,6 +4,7 @@ import { Eye, EyeOff, KeyRound, Lock, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 import { VoltScene, VoltStrength } from "@/components/auth/chef-volt";
+import { OtpCodeFields } from "@/components/kennedy/OtpCodeFields";
 import { EMAIL_RE, pickLine, useChefVolt } from "@/hooks/use-chef-volt";
 import {
   ROLE_HOME,
@@ -264,19 +265,17 @@ function LoginPage() {
 
           {codeSent && (
             <>
-              <label className="auth-field-wrap block">
-                <KeyRound className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-charcoal/40" />
-                <input
-                  type="text"
-                  value={code}
-                  placeholder={`6-digit ${lastUsedChannel === "sms" ? "SMS" : "WhatsApp"} code`}
-                  className="auth-field tracking-[0.4em]"
-                  autoComplete="one-time-code"
-                  inputMode="numeric"
-                  maxLength={6}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                />
-              </label>
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-flame/20 bg-flame/5 p-3"
+              >
+                <div className="mb-2 flex items-center gap-2 font-display text-[11px] font-extrabold uppercase text-charcoal/70">
+                  <KeyRound className="h-4 w-4 text-flame" aria-hidden="true" />
+                  Enter your {lastUsedChannel === "sms" ? "SMS" : "WhatsApp"} code
+                </div>
+                <OtpCodeFields value={code} onChange={setCode} />
+              </motion.div>
               <div className="flex items-center justify-between text-[12px] font-bold">
                 <button
                   type="button"
@@ -469,7 +468,7 @@ function LoginPage() {
             to="/onboard"
             className="inline-flex items-center gap-1.5 text-[12px] font-bold text-amber-500 hover:text-amber-400 hover:underline transition-colors"
           >
-            <span>🍽️ Register a new restaurant — 14-day free trial</span>
+              <span>🍽️ Register a new restaurant — 14-day free trial</span>
           </Link>
         </div>
       </form>

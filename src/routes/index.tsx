@@ -338,14 +338,14 @@ function Index() {
 
       {/* Main Content: Food Menu is immediately accessible right after hero */}
       <div className="relative z-10 bg-cream">
+        <Reveal from="left" className="relative z-20 -mt-10 sm:-mt-16" amount={0.3}>
+          <BonusTape />
+        </Reveal>
+
         <MenuShowcase />
 
         <Reveal from="up" amount={0.15}>
           <SliceGallery />
-        </Reveal>
-
-        <Reveal from="left" className="relative z-20 -mt-20 sm:-mt-28" amount={0.3}>
-          <BonusTape />
         </Reveal>
 
         <Reveal from="zoom" className="relative z-10" amount={0.12}>

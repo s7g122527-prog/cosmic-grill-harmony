@@ -17,3 +17,4 @@
 - [x] Replace cluttered offer copy with clear Crazy Deal and Today's Bonus ribbons.
 - [x] Keep the existing menu-book concept while adding caddy guidance and systematic navigation.
 - [x] Verify the full interaction and layout on desktop and phone; cover, next/previous progression, caddy status, and dish spread render without page errors.
+- [x] Move the deal ribbons to sit directly after the hero and before the menu, with the two ribbons separated so no text is clipped.

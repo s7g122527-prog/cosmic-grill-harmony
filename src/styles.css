@@ -307,13 +307,13 @@
   }
 
   .tape[data-tilt="left"] {
-    transform: rotate(-1.8deg);
+    transform: rotate(-1.1deg);
     z-index: 2;
   }
 
   .tape[data-tilt="right"] {
-    transform: rotate(1.5deg);
-    margin-top: -0.65rem;
+    transform: rotate(1.1deg);
+    margin-top: 0.55rem;
     z-index: 1;
   }
 

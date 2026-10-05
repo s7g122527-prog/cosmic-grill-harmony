@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LogIn, Menu, UserRound, X } from "lucide-react";
@@ -88,7 +88,6 @@ const FLOATERS = [
 
 function Index() {
   const reduce = useReducedMotion();
-  const navigate = useNavigate();
   const { isSignedIn, isLoading } = useSession();
   const [navOpen, setNavOpen] = useState(false);
 
@@ -325,39 +324,6 @@ function Index() {
               Moon Grill Narowal Legacy
             </motion.p>
 
-            {/* Instant Menu Quick-View Bar on Landing */}
-            <motion.div {...rise(1.05)} className="mt-5 sm:mt-8">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleOrderNow}
-                  className="flex items-center gap-2 rounded-full bg-charcoal px-4 py-2 font-display text-xs font-black uppercase tracking-[0.16em] text-cream shadow-md transition-all hover:bg-flame hover:scale-105 active:scale-95"
-                >
-                  <span>🔥 View Full Menu</span>
-                </button>
-
-                {[
-                  { label: "All Dishes", cat: "all" },
-                  { label: "Charcoal Karahi", cat: "Charcoal Karahi" },
-                  { label: "BBQ & Tikka", cat: "BBQ & Tikka" },
-                  { label: "Biryani & Rice", cat: "Biryani & Rice" },
-                  { label: "Spicy Pizza", cat: "Pizza" },
-                  { label: "Desserts & Drinks", cat: "Beverages & Desserts" },
-                ].map((item) => (
-                  <button
-                    key={item.cat}
-                    type="button"
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent("menu-category-select", { detail: item.cat }));
-                      document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                    className="rounded-full border border-charcoal/20 bg-cream/90 px-3 py-1.5 font-display text-[11px] font-extrabold uppercase tracking-wider text-charcoal/80 backdrop-blur-sm transition-all hover:border-flame hover:bg-flame/10 hover:text-flame active:scale-95"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
           </div>
 
           <div className="relative z-[90] order-1 mx-auto w-[72%] max-w-[22rem] lg:order-2 lg:w-full lg:max-w-none">

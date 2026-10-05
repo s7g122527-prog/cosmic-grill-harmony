@@ -3,27 +3,21 @@ import { Flame, Pizza, Sparkles, Star } from "lucide-react";
 type Item = { label: string; Icon: typeof Flame };
 
 const TOP: Item[] = [
-  { label: "Today's Bonus · Free Garlic Dip", Icon: Flame },
-  { label: "Buy 1 Large Pizza Get 1 Half Price", Icon: Pizza },
-  { label: "Malai Boti Platter · Rs 200 Off", Icon: Sparkles },
-  { label: "Free Delivery Inside Narowal", Icon: Star },
+  { label: "Crazy Deal · Malai Boti Platter Rs 200 Off", Icon: Flame },
+  { label: "Crazy Deal · Second Large Pizza Half Price", Icon: Pizza },
 ];
 
 const BOTTOM: Item[] = [
-  { label: "Seekh Kebab Combo · Limited Today", Icon: Star },
-  { label: "Charcoal Grill Fresh After 6 PM", Icon: Flame },
-  { label: "Family Deal · 2 Pizza + 1.5L Drink", Icon: Pizza },
-  { label: "Spiciest Pizza in Town · Try It", Icon: Sparkles },
+  { label: "Today's Bonus · Free Delivery Inside Narowal", Icon: Star },
+  { label: "Limited Today · Seekh Kebab Combo", Icon: Sparkles },
 ];
 
 function Row({ items, reverse }: { items: Item[]; reverse?: boolean }) {
-  // duplicated twice so the -50% translate loop is seamless
-  const loop = [...items, ...items];
   return (
     <div className="tape-track" data-reverse={reverse ? "true" : undefined}>
       {[0, 1].map((copy) => (
         <div className="tape-row" key={copy} aria-hidden={copy === 1}>
-          {loop.map(({ label, Icon }, i) => (
+          {items.map(({ label, Icon }, i) => (
             <span className="tape-item" key={`${copy}-${i}`}>
               <Icon className="tape-icon" aria-hidden="true" />
               <span>{label}</span>

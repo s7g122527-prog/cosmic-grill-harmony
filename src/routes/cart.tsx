@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronLeft, Loader2, MapPin, Minus, Plus, Trash2, PlusCircle } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Banknote, Check, ChevronLeft, CircleDollarSign, Loader2, LockKeyhole, MapPin, Minus, Plus, Trash2, PlusCircle, ShieldCheck, Smartphone, UtensilsCrossed, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { getLocalUser, useSession } from "@/hooks/use-session";
 import {
   clearSelected,
@@ -72,6 +74,8 @@ export const Route = createFileRoute("/cart")({
 });
 
 type FieldKey = "name" | "phone" | "street" | "area" | "city" | "notes";
+
+const MotionButton = motion.create(Button);
 
 function CartPage() {
   const navigate = useNavigate();
@@ -225,6 +229,13 @@ function CartPage() {
               ? `${activeBranch.name} is closed right now`
               : null;
 
+  const checkoutStep = !isSignedIn && !otpVerified ? 2 : 3;
+  const paymentIcon = (method: PaymentMethod) => {
+    if (method === "cod") return Banknote;
+    if (method === "easypaisa") return Smartphone;
+    return WalletCards;
+  };
+
   const shareLocation = () => {
     if (!navigator.geolocation) {
       toast.error("This browser can't share your location");
@@ -376,8 +387,8 @@ function CartPage() {
     }`;
 
   return (
-    <main className="min-h-screen bg-cream pb-20">
-      <div className="mx-auto max-w-5xl px-5 py-6 sm:px-8">
+    <main className="checkout-stage min-h-screen bg-cream pb-20">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8">
         <Link
           to="/"
           className="inline-flex items-center gap-1.5 font-display text-xs font-extrabold uppercase tracking-[0.18em] text-charcoal/70 hover:text-flame"
@@ -386,9 +397,21 @@ function CartPage() {
           Keep browsing
         </Link>
 
-        <h1 className="mt-4 font-display text-3xl font-extrabold uppercase text-charcoal sm:text-5xl">
-          Your Cart
-        </h1>
+        <div className="mt-4 flex flex-col gap-5 border-b border-charcoal/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-2 font-display text-[11px] font-extrabold uppercase tracking-[0.16em] text-flame"><UtensilsCrossed className="h-4 w-4" aria-hidden="true" /> Kennedy checkout caddy</span>
+            <h1 className="mt-1 font-display text-3xl font-extrabold uppercase text-charcoal sm:text-5xl">Your order, guided</h1>
+            <p className="mt-2 max-w-xl font-body text-sm text-charcoal/65">We’ll keep every choice together and show what still needs attention.</p>
+          </div>
+          <ol className="checkout-progress" aria-label="Checkout progress">
+            {["Cart", "Verify", "Pay"].map((label, index) => {
+              const number = index + 1;
+              const complete = number < checkoutStep;
+              const active = number === checkoutStep;
+              return <li key={label} className={complete ? "is-complete" : active ? "is-active" : ""}><span>{complete ? <Check aria-hidden="true" /> : number}</span>{label}</li>;
+            })}
+          </ol>
+        </div>
 
         {items.length === 0 ? (
           <p className="mt-6 font-body text-sm text-charcoal/70">
@@ -399,10 +422,10 @@ function CartPage() {
             .
           </p>
         ) : (
-          <div className="mt-6 grid gap-8 lg:grid-cols-[1.3fr_1fr]">
+          <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,.8fr)]">
             {/* items + checkout form */}
             <div>
-              <div className="mb-3 flex items-center justify-between rounded-2xl border-2 border-charcoal/10 px-4 py-2.5">
+              <div className="mb-3 flex items-center justify-between rounded-lg border border-charcoal/10 bg-cream-deep/45 px-4 py-2.5">
                 <span className="font-body text-xs text-charcoal/70">
                   {selected.length} of {items.length} items selected
                 </span>
@@ -418,8 +441,8 @@ function CartPage() {
                 {items.map((i) => (
                   <div
                     key={`${i.slug}-${i.size}`}
-                    className={`flex items-center gap-3 rounded-2xl p-3 transition-colors ${
-                      i.selected ? "bg-flame/8 ring-2 ring-flame/40" : "bg-charcoal/5"
+                    className={`checkout-item flex items-center gap-3 rounded-lg border p-3 transition-colors ${
+                      i.selected ? "border-flame/35 bg-flame/5" : "border-charcoal/10 bg-cream-deep/35"
                     }`}
                   >
                     <button
@@ -483,7 +506,7 @@ function CartPage() {
               <h2 className="mt-8 font-display text-lg font-extrabold uppercase text-charcoal">
                 How do you want it?
               </h2>
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {(
                   [
                     ["delivery", "Delivery", "To your door"],
@@ -496,8 +519,8 @@ function CartPage() {
                     type="button"
                     aria-pressed={orderType === key}
                     onClick={() => setOrderType(key)}
-                    className={`rounded-2xl border-2 p-3 text-left ${
-                      orderType === key ? "border-flame bg-flame/5" : "border-charcoal/12"
+                    className={`checkout-choice rounded-lg border-2 p-3 text-left ${
+                      orderType === key ? "is-selected border-flame bg-flame/5" : "border-charcoal/12"
                     }`}
                   >
                     <span className="block font-display text-xs font-extrabold uppercase text-charcoal">
@@ -690,10 +713,12 @@ function CartPage() {
                       ["notes", "Notes for the rider (optional)"],
                     ] as const
                   ).map(([key, label]) => (
-                    <div key={key} className={key === "notes" ? "sm:col-span-2" : ""}>
+                    <Fragment key={key}>
+                    <div className={key === "notes" ? "sm:col-span-2" : ""}>
                       <label className="block font-body text-[11px] uppercase tracking-widest text-charcoal/60 font-bold">
                         {label}
                       </label>
+                      <div className={key === "phone" ? "relative" : ""}>
                       <input
                         value={form[key]}
                         {...(key === "phone"
@@ -714,32 +739,31 @@ function CartPage() {
                           setForm((f) => ({ ...f, [key]: val }));
                           if (key === "phone" && otpVerified) setOtpVerified(false);
                         }}
-                        className={`${fieldClass(key)}${key === "phone" && otpVerified && !isSignedIn ? " cursor-not-allowed opacity-70 bg-green-50/60" : ""}`}
+                        className={`${fieldClass(key)}${key === "phone" && otpVerified && !isSignedIn ? " cursor-not-allowed border-flame/25 bg-flame/5 pr-10" : ""}`}
                       />
+                      {key === "phone" && otpVerified && !isSignedIn && <LockKeyhole className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-flame" aria-hidden="true" />}
+                      </div>
                       {touched[key] && errors[key] && (
                         <span className="mt-1 block font-body text-[11px] font-semibold text-flame">
                           {errors[key]}
                         </span>
                       )}
                     </div>
+                    {key === "phone" && !isSignedIn && (
+                      <div className="sm:col-span-2 -mt-1">
+                        <LuxuryOtpWidget
+                          phone={form.phone}
+                          name={form.name}
+                          isVerified={otpVerified}
+                          onVerified={(account) => {
+                            setOtpVerified(true);
+                            if (account?.name && !form.name) setForm((f) => ({ ...f, name: account.name }));
+                          }}
+                        />
+                      </div>
+                    )}
+                    </Fragment>
                   ))}
-
-                  {/* High-visibility OTP Verification card for Guest checkout */}
-                  {!isSignedIn && (
-                    <div className="sm:col-span-2">
-                      <LuxuryOtpWidget
-                        phone={form.phone}
-                        name={form.name}
-                        isVerified={otpVerified}
-                        onVerified={(account) => {
-                          setOtpVerified(true);
-                          if (account?.name && !form.name) {
-                            setForm((f) => ({ ...f, name: account.name }));
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -768,21 +792,28 @@ function CartPage() {
             </div>
 
             {/* summary */}
-            <aside className="h-fit rounded-3xl bg-charcoal/5 p-5">
-              <h2 className="font-display text-sm font-extrabold uppercase tracking-[0.18em] text-charcoal">
-                Payment
-              </h2>
+            <aside className="checkout-summary h-fit rounded-xl border border-charcoal/10 bg-cream-deep/55 p-5 lg:sticky lg:top-6">
+              <div className="flex items-center justify-between gap-3">
+                <div><span className="font-body text-[10px] font-bold uppercase tracking-[0.14em] text-flame">Caddy step 3</span><h2 className="font-display text-lg font-extrabold uppercase text-charcoal">Choose payment</h2></div>
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-charcoal text-cream"><CircleDollarSign className="h-5 w-5" aria-hidden="true" /></span>
+              </div>
               <div className="mt-3 space-y-2">
-                {PAYMENTS.map((p) => (
-                  <button
+                {PAYMENTS.map((p) => {
+                  const PaymentIcon = paymentIcon(p.id);
+                  const selectedPayment = payment === p.id;
+                  return (
+                  <MotionButton
                     key={p.id}
                     type="button"
                     onClick={() => setPayment(p.id)}
-                    className={`flex w-full items-center justify-between rounded-2xl border-2 p-3 text-left ${
-                      payment === p.id ? "border-flame bg-flame/5" : "border-charcoal/12"
+                    whileTap={{ scale: 0.985 }}
+                    animate={{ x: selectedPayment ? 3 : 0 }}
+                    className={`payment-choice flex w-full items-center gap-3 rounded-lg border-2 p-3 text-left ${
+                      selectedPayment ? "is-selected border-flame bg-flame/5" : "border-charcoal/12 bg-cream/55"
                     }`}
                   >
-                    <span>
+                    <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${selectedPayment ? "bg-flame text-cream" : "bg-charcoal/8 text-charcoal"}`}><PaymentIcon className="h-5 w-5" aria-hidden="true" /></span>
+                    <span className="min-w-0 flex-1">
                       <span className="block font-display text-sm font-extrabold uppercase text-charcoal">
                         {p.label}
                       </span>
@@ -791,8 +822,9 @@ function CartPage() {
                     {p.fee > 0 && (
                       <span className="font-body text-xs text-charcoal/60">+Rs {p.fee}</span>
                     )}
-                  </button>
-                ))}
+                    <AnimatePresence>{selectedPayment && <motion.span initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }} className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-flame text-cream"><Check className="h-4 w-4" aria-hidden="true" /></motion.span>}</AnimatePresence>
+                  </MotionButton>
+                );})}
               </div>
 
               {/* SLICE 2.5 — discount code */}
@@ -858,7 +890,7 @@ function CartPage() {
                 )}
               </div>
 
-              <p className="mt-5 font-body text-[11px] uppercase tracking-[0.14em] text-charcoal/50">
+              <p className="mt-5 flex items-center gap-2 font-body text-[11px] uppercase tracking-[0.14em] text-charcoal/50"><ShieldCheck className="h-4 w-4 text-flame" aria-hidden="true" />
                 Estimate · the kitchen confirms the final bill
               </p>
               <dl className="mt-2 space-y-2 font-body text-sm">

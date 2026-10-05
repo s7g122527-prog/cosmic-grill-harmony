@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ShoppingBag, Star, Utensils, ChefHat, Eye } from "lucide-react";
+import { Check, ShoppingBag, Star, Utensils, ChefHat, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -188,6 +188,7 @@ export function MenuShowcase() {
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="foodio-menu__heading"
         >
+          <span className="foodio-menu__eyebrow">Pick your craving</span>
           <h2>Our Menu</h2>
         </motion.header>
 
@@ -208,6 +209,7 @@ export function MenuShowcase() {
                 <Icon aria-hidden="true" />
                 <span>{category.name === ALL ? "All" : category.name}</span>
                 <span className="foodio-menu__count">{category.count}</span>
+                {selected && <Check className="foodio-menu__check" aria-hidden="true" />}
               </Button>
             );
           })}

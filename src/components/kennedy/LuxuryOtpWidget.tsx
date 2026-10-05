@@ -165,29 +165,29 @@ export function LuxuryOtpWidget({
 
   if (isVerified) {
     return (
-      <div className={`mt-3 flex items-center justify-between gap-3 rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/10 p-3.5 text-emerald-950 shadow-sm ${className}`}>
+      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className={`mt-3 flex items-center justify-between gap-3 rounded-xl border-2 border-flame/30 bg-flame/5 p-3.5 text-charcoal shadow-sm ${className}`}>
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-flame text-cream shadow-sm">
             <Check className="h-5 w-5" />
           </div>
           <div>
-            <span className="flex items-center gap-1.5 font-display text-xs font-extrabold uppercase tracking-wider text-emerald-900">
-              <Lock className="w-3.5 h-3.5 text-emerald-700" /> Phone Verified &amp; Account Created
+            <span className="flex items-center gap-1.5 font-display text-xs font-extrabold uppercase tracking-wider text-charcoal">
+              <Lock className="w-3.5 h-3.5 text-flame" /> Phone verified
             </span>
-            <span className="block font-body text-xs text-emerald-800/80">
-              Order updates &amp; live rider tracking will be sent to <span className="font-mono font-bold text-emerald-950">{phone}</span>
+            <span className="block font-body text-xs text-charcoal/70">
+              Order updates will be sent to <span className="font-mono font-bold text-charcoal">{phone}</span>
             </span>
           </div>
         </div>
-        <span className="shrink-0 flex items-center gap-1 rounded-full border border-emerald-600/30 bg-emerald-600 px-3 py-1 font-display text-[10px] font-black uppercase tracking-widest text-white shadow-sm">
+        <span className="shrink-0 flex items-center gap-1 rounded-full border border-flame/30 bg-charcoal px-3 py-1 font-display text-[10px] font-black uppercase tracking-widest text-cream shadow-sm">
           <ShieldCheck className="h-3.5 w-3.5" /> Locked
         </span>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className={`mt-3 overflow-hidden rounded-2xl border-2 border-flame/30 bg-white p-4 shadow-[0_8px_24px_rgba(180,40,20,0.08)] transition-all ${className}`}>
+    <div className={`mt-3 overflow-hidden rounded-xl border-2 border-flame/20 bg-cream-deep/35 p-4 shadow-[var(--shadow-card)] transition-all ${className}`}>
       {/* Header bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-charcoal/10">
         <div className="flex items-center gap-2.5">

@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { Banknote, Check, ChevronLeft, CircleDollarSign, Loader2, LockKeyhole, MapPin, Minus, Plus, Trash2, PlusCircle, ShieldCheck, ShoppingBag, Smartphone, Truck, UtensilsCrossed, WalletCards } from "lucide-react";
+import { Banknote, Check, ChevronLeft, CircleDollarSign, Loader2, LockKeyhole, MapPin, Minus, Plus, Trash2, PlusCircle, ShieldCheck, Smartphone, UtensilsCrossed, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { getLocalUser, useSession } from "@/hooks/use-session";
 import {
   clearSelected,
@@ -73,6 +74,8 @@ export const Route = createFileRoute("/cart")({
 });
 
 type FieldKey = "name" | "phone" | "street" | "area" | "city" | "notes";
+
+const MotionButton = motion.create(Button);
 
 function CartPage() {
   const navigate = useNavigate();
@@ -715,6 +718,7 @@ function CartPage() {
                       <label className="block font-body text-[11px] uppercase tracking-widest text-charcoal/60 font-bold">
                         {label}
                       </label>
+                      <div className={key === "phone" ? "relative" : ""}>
                       <input
                         value={form[key]}
                         {...(key === "phone"
@@ -735,8 +739,10 @@ function CartPage() {
                           setForm((f) => ({ ...f, [key]: val }));
                           if (key === "phone" && otpVerified) setOtpVerified(false);
                         }}
-                        className={`${fieldClass(key)}${key === "phone" && otpVerified && !isSignedIn ? " cursor-not-allowed opacity-70 bg-green-50/60" : ""}`}
+                        className={`${fieldClass(key)}${key === "phone" && otpVerified && !isSignedIn ? " cursor-not-allowed border-flame/25 bg-flame/5 pr-10" : ""}`}
                       />
+                      {key === "phone" && otpVerified && !isSignedIn && <LockKeyhole className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-flame" aria-hidden="true" />}
+                      </div>
                       {touched[key] && errors[key] && (
                         <span className="mt-1 block font-body text-[11px] font-semibold text-flame">
                           {errors[key]}
@@ -796,7 +802,7 @@ function CartPage() {
                   const PaymentIcon = paymentIcon(p.id);
                   const selectedPayment = payment === p.id;
                   return (
-                  <motion.button
+                  <MotionButton
                     key={p.id}
                     type="button"
                     onClick={() => setPayment(p.id)}
@@ -817,7 +823,7 @@ function CartPage() {
                       <span className="font-body text-xs text-charcoal/60">+Rs {p.fee}</span>
                     )}
                     <AnimatePresence>{selectedPayment && <motion.span initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }} className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-flame text-cream"><Check className="h-4 w-4" aria-hidden="true" /></motion.span>}</AnimatePresence>
-                  </motion.button>
+                  </MotionButton>
                 );})}
               </div>
 

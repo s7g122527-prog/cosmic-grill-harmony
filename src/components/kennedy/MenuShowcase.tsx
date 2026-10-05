@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ShoppingBag, Star, Utensils, ChefHat } from "lucide-react";
+import { ShoppingBag, Star, Utensils, ChefHat, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -97,15 +97,25 @@ const CompactMenuItem = memo(function CompactMenuItem({
           ))}
         </div>
 
-        <Button
-          type="button"
-          size="icon"
-          aria-label={`Add ${dish.name} to cart`}
-          onClick={() => onAdd(dish)}
-          className="foodio-menu__cart"
-        >
-          <ShoppingBag className="foodio-menu__bag" aria-hidden="true" />
-        </Button>
+        <div className="foodio-menu__actions">
+          <Link
+            to="/dish/$slug"
+            params={{ slug: dish.slug }}
+            className="foodio-menu__details"
+          >
+            <Eye aria-hidden="true" />
+            <span>View Details</span>
+          </Link>
+          <Button
+            type="button"
+            aria-label={`Add ${dish.name} to cart`}
+            onClick={() => onAdd(dish)}
+            className="foodio-menu__cart"
+          >
+            <ShoppingBag className="foodio-menu__bag" aria-hidden="true" />
+            <span>Add to Cart</span>
+          </Button>
+        </div>
       </div>
     </motion.article>
   );

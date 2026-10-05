@@ -1,15 +1,15 @@
-import { Flame, Pizza, Sparkles, Star } from "lucide-react";
+import { Flame, Gift, Pizza, Sparkles } from "lucide-react";
 
 type Item = { label: string; Icon: typeof Flame };
 
 const TOP: Item[] = [
-  { label: "Crazy Deal · Malai Boti Platter Rs 200 Off", Icon: Flame },
-  { label: "Crazy Deal · Second Large Pizza Half Price", Icon: Pizza },
+  { label: "Malai Boti Platter — Rs 200 Off", Icon: Flame },
+  { label: "Second Large Pizza — Half Price", Icon: Pizza },
 ];
 
 const BOTTOM: Item[] = [
-  { label: "Today's Bonus · Free Delivery Inside Narowal", Icon: Star },
-  { label: "Limited Today · Seekh Kebab Combo", Icon: Sparkles },
+  { label: "Free Delivery Inside Narowal", Icon: Gift },
+  { label: "Seekh Kebab Combo — Limited Today", Icon: Sparkles },
 ];
 
 function Row({ items, reverse }: { items: Item[]; reverse?: boolean }) {
@@ -33,14 +33,26 @@ function Row({ items, reverse }: { items: Item[]; reverse?: boolean }) {
 export function BonusTape() {
   return (
     <section
-      className="tape-section relative z-20"
-      aria-label="Today's bonus offers"
+      className="tape-section"
+      aria-label="Today's deals and bonus offers"
     >
-      <div className="tape tape-gold" data-tilt="left">
-        <Row items={TOP} />
+      <div className="ticket ticket--gold">
+        <span className="ticket-badge">
+          <Pizza aria-hidden="true" />
+          <span>Crazy Deal</span>
+        </span>
+        <div className="ticket-window">
+          <Row items={TOP} />
+        </div>
       </div>
-      <div className="tape tape-flame" data-tilt="right">
-        <Row items={BOTTOM} reverse />
+      <div className="ticket ticket--flame">
+        <span className="ticket-badge">
+          <Gift aria-hidden="true" />
+          <span>Today's Bonus</span>
+        </span>
+        <div className="ticket-window">
+          <Row items={BOTTOM} reverse />
+        </div>
       </div>
     </section>
   );

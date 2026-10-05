@@ -31,9 +31,13 @@
 .foodio-menu__price { display: block; margin-block: 1rem .75rem; color: var(--color-menu-accent); font: 400 1.75rem/1.2 var(--font-menu-heading); }
 .foodio-menu__rating { display: flex; gap: .375rem; color: var(--color-ember); }
 .foodio-menu__rating svg { width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
-.foodio-menu__cart { position: absolute; right: 1rem; bottom: 1rem; width: 50px; height: 50px; border-radius: .5rem; display: grid; place-items: center; background: var(--color-menu-primary); color: var(--color-menu-title); box-shadow: none; transition: all .5s ease-in-out; }
-.foodio-menu__cart:hover { background: var(--color-menu-accent); color: var(--color-menu-card); }
-.foodio-menu__cart .foodio-menu__bag { width: 2rem; height: 2rem; }
+.foodio-menu__actions { position: absolute; right: 1rem; bottom: 1rem; display: flex; align-items: center; gap: .625rem; }
+.foodio-menu__details { display: inline-flex; align-items: center; gap: .5rem; height: 50px; padding: 0 1.1rem; border-radius: .5rem; border: 2px solid color-mix(in oklch, var(--color-menu-title) 30%, transparent); color: var(--color-menu-title); font: 400 .95rem/1 var(--font-menu-heading); white-space: nowrap; transition: all .5s ease-in-out; }
+.foodio-menu__details:hover { border-color: var(--color-menu-accent); color: var(--color-menu-accent); }
+.foodio-menu__details svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+.foodio-menu__cart { display: inline-flex; align-items: center; gap: .5rem; height: 50px; padding: 0 1.25rem; border-radius: .5rem; background: var(--color-menu-primary); color: oklch(1 0 0); font: 400 .95rem/1 var(--font-menu-heading); white-space: nowrap; box-shadow: none; transition: all .5s ease-in-out; }
+.foodio-menu__cart:hover { background: var(--color-flame-dark); color: oklch(1 0 0); }
+.foodio-menu__cart .foodio-menu__bag { width: 1.25rem; height: 1.25rem; }
 .foodio-menu__filters { display: flex; gap: 1.5rem; overflow-x: auto; margin: -1rem 0 3rem; padding-bottom: 2px; border-bottom: 1px solid color-mix(in oklch,var(--color-menu-text) 15%, transparent); scrollbar-width: thin; scrollbar-color: var(--color-menu-primary) transparent; }
 .foodio-menu__filter { flex-shrink: 0; position: relative; border-radius: 0; padding: .875rem .25rem; height: auto; gap: .625rem; background: transparent; color: var(--color-menu-text); font: 400 1rem var(--font-menu-heading); letter-spacing: 0; border-bottom: 3px solid transparent; }
 .foodio-menu__filter:hover { background: transparent; color: var(--color-menu-accent); }
@@ -50,8 +54,9 @@
   .foodio-menu__title { font-size: 1.25rem; }
   .foodio-menu__price { font-size: 1.5rem; }
   .foodio-menu__rating svg { width: 1rem; height: 1rem; }
-  .foodio-menu__cart { width: 40px; height: 40px; }
-  .foodio-menu__cart .foodio-menu__bag { width: 1.5rem; height: 1.5rem; }
+  .foodio-menu__actions { gap: .5rem; }
+  .foodio-menu__details, .foodio-menu__cart { height: 40px; padding: 0 .8rem; font-size: .85rem; }
+  .foodio-menu__details svg, .foodio-menu__cart .foodio-menu__bag { width: 1rem; height: 1rem; }
 }
 @media (max-width: 1200px) { .foodio-menu__container { max-width: 960px; } .foodio-menu__grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 992px) { .foodio-menu__container { max-width: 720px; } .foodio-menu__grid { grid-template-columns: minmax(0,1fr); } }
@@ -60,6 +65,7 @@
   .foodio-menu__item { padding: 6rem 1.5rem 1.5rem; margin-top: 6rem; margin-left: 0; border-radius: 1rem; }
   .foodio-menu__image { width: 175px; height: 154px; top: -38%; left: 1.5rem; transform: none; }
   .foodio-menu__filters { gap: 1rem; margin-bottom: 1.5rem; }
+  .foodio-menu__actions { position: static; margin-top: 1.25rem; flex-wrap: wrap; }
 }
 
 
@@ -267,7 +273,7 @@
 }
 
 /* ---------------------------------------------------------------
- * Bonus tape: two tilted, opposite-scrolling luxury marquee bands
+ * Deal tickets: straight, badge-led marquee bands
  * --------------------------------------------------------------- */
 @keyframes tape-scroll {
   from {
@@ -280,64 +286,87 @@
 
 @layer components {
   .tape-section {
-    min-height: 10rem;
-    padding: 2.75rem 0;
     display: grid;
-    place-items: center;
-    isolation: isolate;
+    gap: 0.9rem;
+    padding: 2.5rem 1rem 2rem;
+    max-width: 1080px;
+    margin-inline: auto;
   }
 
-  .tape {
+  .ticket {
     position: relative;
     display: flex;
+    align-items: stretch;
     overflow: hidden;
-    width: 116%;
-    margin-left: -8%;
-    padding: 0.9rem 0;
-    border-top: 3px solid var(--color-charcoal);
-    border-bottom: 3px solid var(--color-charcoal);
-    box-shadow: 0 14px 24px -12px oklch(0.28 0.03 40 / 0.55);
-    mask-image: linear-gradient(
-      to right,
-      transparent,
-      #000 5%,
-      #000 95%,
-      transparent
-    );
+    border-radius: 1.1rem;
+    box-shadow: 0 16px 30px -18px oklch(0.28 0.03 40 / 0.5);
   }
 
-  .tape[data-tilt="left"] {
-    transform: rotate(-1.1deg);
-    z-index: 2;
+  /* punch-hole bites at both ends, like a real ticket */
+  .ticket::before,
+  .ticket::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 9999px;
+    background: var(--color-cream);
+    z-index: 3;
   }
+  .ticket::before { left: 0; transform: translate(-50%, -50%); }
+  .ticket::after { right: 0; transform: translate(50%, -50%); }
 
-  .tape[data-tilt="right"] {
-    transform: rotate(1.1deg);
-    margin-top: 0.55rem;
-    z-index: 1;
-  }
-
-  .tape-gold {
+  .ticket--gold {
     background: var(--color-gold);
     color: var(--color-charcoal);
   }
 
-  .tape-flame {
+  .ticket--flame {
     background: var(--color-flame);
     color: var(--color-cream);
-    border-color: var(--color-cream);
   }
 
-  .tape::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      oklch(1 0 0 / 0.32),
-      transparent 42%,
-      oklch(0.2 0.03 40 / 0.22)
+  .ticket-badge {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0 1.5rem;
+    background: var(--color-charcoal);
+    color: var(--color-gold);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-right: 2px dashed oklch(1 0 0 / 0.35);
+  }
+
+  .ticket--flame .ticket-badge { color: var(--color-flame); }
+
+  .ticket-badge svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .ticket-window {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding-block: 1.05rem;
+    overflow: hidden;
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 8%,
+      #000 92%,
+      transparent
     );
   }
 
@@ -371,10 +400,9 @@
     white-space: nowrap;
     font-family: var(--font-display);
     font-weight: 800;
-    font-size: 1.15rem;
-    letter-spacing: 0.1em;
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    text-shadow: 0 1px 0 oklch(1 0 0 / 0.25);
     transition: transform 0.25s ease;
   }
 
@@ -396,21 +424,24 @@
     opacity: 0.55;
   }
 
-  @media (min-width: 640px) {
-    .tape-item {
-      font-size: 1.15rem;
-    }
-    .tape {
-      padding: 1.15rem 0;
-    }
-  }
-
   @media (max-width: 639px) {
-    .tape-section { min-height: 8rem; padding-block: 2rem; }
-    .tape { width: 124%; margin-left: -12%; padding-block: 0.7rem; }
-    .tape-item { font-size: 0.82rem; letter-spacing: 0.08em; }
+    .tape-section {
+      gap: 0.75rem;
+      padding: 1.75rem 0.75rem 1.25rem;
+    }
+    .ticket { border-radius: 0.9rem; }
+    .ticket-badge {
+      padding: 0 0.9rem;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+    }
+    .ticket-badge svg { width: 0.9rem; height: 0.9rem; }
+    .ticket-window { padding-block: 0.75rem; }
+    .tape-item { font-size: 0.82rem; letter-spacing: 0.06em; gap: 0.5rem; }
   }
 }
+
 
 
 /* ---------------------------------------------------------------

@@ -1,445 +1,256 @@
-/**
- * VoiceOrderButton — Takii, the Kennedy AI Voice Host
- * Powered by @elevenlabs/react (Official Conversational AI WebRTC SDK)
- *
- * Features:
- *   • Direct real-time bidirectional audio with ultra-low latency (<300ms)
- *   • Auto-passes authenticated user session & dynamicVariables (name, phone, user_id, address)
- *   • Natural speech interruptibility, audio visualization & live Urdu transcripts
- *   • Live Order placement & tracking linked to Django database
- */
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowUp, Flame, MessageCircle, Mic, MicOff, X } from "lucide-react";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Mic, Square, X, Loader2, Volume2, LogIn, Sparkles } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import { ConversationProvider, useConversation } from "@elevenlabs/react";
-import { useAccount } from "@/lib/auth";
-import { tokens, API_BASE_URL, normalizePath } from "@/lib/api/client";
-import { ELEVENLABS } from "@/lib/api/endpoints";
-import caddyAvatar from "@/assets/caddy-avatar.jpg";
+import { Button } from "@/components/ui/button";
 
-type Turn = { role: "user" | "assistant"; content: string };
+type Turn = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
 
-/* ─── Fetch signed URL from Django backend ──────────────────────────────────── */
-async function fetchSignedUrl(): Promise<{
-  signed_url: string;
-  is_guest: boolean;
-  user: {
-    user_id: string;
-    full_name: string;
-    phone: string;
-    delivery_address: string;
-    delivery_area: string;
-    username: string;
-  } | null;
-}> {
-  const accessToken = tokens.access();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+const STORAGE_KEY = "kennedy-takiii-guest-chat";
+const WELCOME_TURN: Turn = {
+  id: "takiii-welcome",
+  role: "assistant",
+  content: "Assalam-o-alaikum! Main Takiii hoon. Aaj kya khana pasand karein ge?",
+};
 
-  // Single source of truth for URL shape: client.normalizePath() adds the
-  // Django /api prefix + trailing slash exactly once.
-  const url = `${API_BASE_URL}${normalizePath(ELEVENLABS.signedUrl)}`;
-
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error("Signed URL fetch failed");
-  return res.json();
+function readSavedTurns(): Turn[] {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (!saved) return [WELCOME_TURN];
+    const parsed: unknown = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [WELCOME_TURN];
+    return parsed.filter(
+      (turn): turn is Turn =>
+        typeof turn === "object" &&
+        turn !== null &&
+        "id" in turn &&
+        "role" in turn &&
+        "content" in turn &&
+        typeof turn.id === "string" &&
+        (turn.role === "user" || turn.role === "assistant") &&
+        typeof turn.content === "string",
+    );
+  } catch {
+    return [WELCOME_TURN];
+  }
 }
 
-/* ─── Inner Voice Component (inside ConversationProvider) ─────────────────────── */
-function VoiceOrderButtonInner() {
-  const { account, isLoading: authLoading } = useAccount();
-  const isLoggedIn = !!account;
-
-  const [open, setOpen] = useState(false);
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [greeting, setGreeting] = useState("Urdu mein bolein — menu, mashwara aur order.");
-  const [isStarting, setIsStarting] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Official ElevenLabs React hook
-  const conversation = useConversation({
-    onConnect: () => {
-      setIsStarting(false);
-      setError(null);
-    },
-    onDisconnect: () => {
-      setIsStarting(false);
-    },
-    onMessage: (message) => {
-      if (typeof message === "object" && message !== null) {
-        const text = (message as { message?: string; text?: string }).message || (message as { text?: string }).text;
-        const source = (message as { source?: string }).source;
-        if (text) {
-          setTurns((prev) => [
-            ...prev,
-            { role: source === "user" ? "user" : "assistant", content: text },
-          ]);
-        }
-      }
-    },
-    onError: (rawErr: unknown) => {
-      const err = rawErr as unknown;
-      setIsStarting(false);
-      const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "Voice connection error.";
-      setError(msg);
-    },
-  });
-
-  const isConnected = conversation.status === "connected";
-  const isConnecting = conversation.status === "connecting" || isStarting;
-  const isSpeaking = conversation.isSpeaking;
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [turns, isSpeaking]);
-
-  /* ── Start ElevenLabs Conversation ────────────────────────────────────────── */
-  const handleStartSession = useCallback(async () => {
-    setError(null);
-    setIsStarting(true);
-    try {
-      // 1. Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // 2. Fetch signed URL + user info from Django
-      let signed_url = "";
-      let is_guest = true;
-      let user = null;
-
-      try {
-        const data = await fetchSignedUrl();
-        signed_url = data.signed_url;
-        is_guest = data.is_guest;
-        user = data.user;
-      } catch {
-        /* fallback to public agentId if signedUrl fails */
-      }
-
-      // 3. Build dynamic variables for ElevenLabs agent
-      const dynamicVariables: Record<string, string> = {};
-      if (!is_guest && user) {
-        setGreeting(`Khush aamdeed ${user.full_name}! Aaj kya order karein?`);
-        dynamicVariables.user_id = user.user_id;
-        dynamicVariables.customer_name = user.full_name;
-        dynamicVariables.customer_phone = user.phone;
-        dynamicVariables.delivery_address = user.delivery_address || user.delivery_area;
-      } else {
-        setGreeting("Urdu mein bolein — menu, mashwara aur order.");
-      }
-
-      // 4. Start official ElevenLabs WebRTC session
-      if (signed_url) {
-        await conversation.startSession({
-          signedUrl: signed_url,
-          dynamicVariables,
-        });
-      } else {
-        await conversation.startSession({
-          agentId: "agent_0301m16yv1tke08bd29ztzt95j9b",
-          dynamicVariables,
-        });
-      }
-    } catch (err) {
-      try {
-        await conversation.startSession({
-          agentId: "agent_0301m16yv1tke08bd29ztzt95j9b",
-        });
-      } catch (fallbackErr) {
-        setIsStarting(false);
-        setError(
-          fallbackErr instanceof Error
-            ? fallbackErr.message
-            : "Microphone ya session connection error. Dobara try karein."
-        );
-      }
-    }
-  }, [conversation]);
-
-  /* ── End session ──────────────────────────────────────────────────────────── */
-  const handleEndSession = useCallback(async () => {
-    try {
-      await conversation.endSession();
-    } catch {
-      /* ignore */
-    }
-  }, [conversation]);
-
-  /* ── Close panel ──────────────────────────────────────────────────────────── */
-  const closePanel = useCallback(() => {
-    setOpen(false);
-    void handleEndSession();
-  }, [handleEndSession]);
-
-  /* ── Open panel & launch session ──────────────────────────────────────────── */
-  const handleOpen = useCallback(() => {
-    setOpen(true);
-    if (isLoggedIn && !isConnected && !isConnecting) {
-      void handleStartSession();
-    }
-  }, [isLoggedIn, isConnected, isConnecting, handleStartSession]);
-
-  if (authLoading) return null;
-
-  return (
-    <>
-      {/* Floating launcher button: Takii — Kennedy AI Voice Host */}
-      <motion.button
-        type="button"
-        onClick={handleOpen}
-        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.8 }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        style={{
-          bottom: "calc(1.25rem + var(--kmg-cart-bar, 0px) + env(safe-area-inset-bottom))",
-        }}
-        className="fixed right-4 z-[150] flex cursor-pointer items-center gap-2.5 rounded-full border border-gold/50 bg-charcoal/95 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md sm:right-8 sm:py-2 sm:pl-2 sm:pr-4"
-        aria-label="Takii — your Urdu voice guide"
-      >
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
-          <motion.span
-            className="absolute inset-0 rounded-full bg-gold/40"
-            animate={{ scale: [1, 1.7], opacity: [0.6, 0] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
-            aria-hidden="true"
-          />
-          <img
-            src={caddyAvatar}
-            alt=""
-            aria-hidden="true"
-            className="relative h-9 w-9 rounded-full border-2 border-gold/80 object-cover" loading="lazy" decoding="async" />
-          <span
-            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-charcoal ${
-              isConnected ? "bg-emerald-400 animate-pulse" : "bg-emerald-500"
-            }`}
-            aria-hidden="true"
-          />
-        </span>
-        <span className="hidden flex-col items-start text-left leading-none sm:flex">
-          <span className="flex items-center gap-1 font-display text-xs font-black tracking-wider text-cream uppercase">
-            Takii <Sparkles className="h-3 w-3 text-gold" />
-          </span>
-          <span className="mt-0.5 text-[0.65rem] font-semibold tracking-wider text-gold">
-            {isConnected ? "Live Voice..." : "Urdu Voice Host"}
-          </span>
-        </span>
-        <Mic
-          className={`hidden h-4 w-4 sm:block ${isConnected ? "animate-bounce text-emerald-400" : "text-gold"}`}
-          aria-hidden="true"
-        />
-      </motion.button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[300] flex items-end justify-center bg-charcoal/70 p-0 backdrop-blur-md sm:items-center sm:p-6"
-            onClick={closePanel}
-          >
-            <motion.div
-              initial={{ y: 60, opacity: 0, scale: 0.96 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: 40, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 340, damping: 32 }}
-              onClick={(e) => e.stopPropagation()}
-              className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-[#FFFDF9] shadow-[0_-20px_70px_rgba(0,0,0,0.5)] sm:rounded-3xl border border-gold/20"
-            >
-              {/* Header */}
-              <div className="relative flex items-center gap-3 bg-gradient-to-r from-charcoal via-[#221f1d] to-charcoal px-5 py-4 text-cream border-b border-gold/30">
-                <div className="relative">
-                  <img
-                    src={caddyAvatar}
-                    alt="Takii, your voice guide"
-                    className="h-11 w-11 rounded-full border-2 border-gold/80 object-cover shadow" loading="lazy" decoding="async" />
-                  {isConnected && (
-                    <motion.span
-                      className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] text-white font-bold ring-2 ring-charcoal"
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      ✓
-                    </motion.span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-display text-sm font-extrabold uppercase tracking-wide text-cream">
-                      Takii · AI Food Host
-                    </p>
-                    <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[0.65rem] font-bold text-gold border border-gold/30">
-                      Roman Urdu
-                    </span>
-                  </div>
-                  <p className="font-body text-xs text-cream/75 truncate mt-0.5">{greeting}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closePanel}
-                  aria-label="Close"
-                  className="rounded-full bg-cream/10 p-2 text-cream/80 hover:bg-cream/20 hover:text-cream transition cursor-pointer"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-
-              {/* Body: Not logged in */}
-              {!isLoggedIn ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center bg-cream/30">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gold/15 text-gold border border-gold/30">
-                    <LogIn className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <p className="font-display text-lg font-bold text-charcoal">
-                      Login to Order by Voice
-                    </p>
-                    <p className="font-body text-xs text-charcoal/65 mt-1 max-w-xs">
-                      Apne account se voice order karne ke liye pehle login karein taake order aapki history mein save ho.
-                    </p>
-                  </div>
-                  <Link
-                    to="/profile"
-                    onClick={closePanel}
-                    className="mt-2 flex items-center gap-2 rounded-full bg-flame hover:bg-flame-dark px-6 py-3 font-display text-xs font-extrabold uppercase tracking-wider text-cream shadow-[0_8px_20px_rgba(200,40,20,0.3)] transition"
-                  >
-                    <LogIn className="h-4 w-4" />
-                    Sign In / Sign Up
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  {/* Live Conversation Transcript */}
-                  <div ref={scrollRef} className="min-h-[220px] max-h-[320px] flex-1 space-y-3 overflow-y-auto p-5 bg-[#FAF7F2]">
-                    {isConnecting && (
-                      <div className="flex items-center justify-center gap-2 rounded-2xl bg-charcoal/5 px-4 py-3 font-body text-xs text-charcoal/70 border border-charcoal/10">
-                        <Loader2 className="h-4 w-4 animate-spin text-gold" />
-                        Takii AI se connect ho raha hai...
-                      </div>
-                    )}
-
-                    {!isConnecting && turns.length === 0 && !error && (
-                      <div className="rounded-2xl bg-gold/10 p-5 text-center font-body text-xs text-charcoal/80 border border-gold/25 space-y-2">
-                        <p className="font-bold text-sm text-charcoal">🎙️ Boliye, main sun raha hoon!</p>
-                        <p className="text-charcoal/70">
-                          Misaal: <span className="font-semibold text-flame">"Ek Regular Kennedy Inferno Pizza Circular Road par bhej dein"</span>
-                        </p>
-                      </div>
-                    )}
-
-                    {turns.map((t, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`max-w-[85%] rounded-2xl px-4 py-3 font-body text-xs sm:text-sm leading-relaxed shadow-sm ${
-                          t.role === "user"
-                            ? "ml-auto bg-flame text-cream font-medium"
-                            : "mr-auto bg-white text-charcoal border border-charcoal/10"
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 mb-1 text-[0.65rem] opacity-75 font-bold uppercase tracking-wider">
-                          {t.role === "user" ? "Aap" : "Takii (AI Host)"}
-                        </div>
-                        {t.content}
-                      </motion.div>
-                    ))}
-
-                    {isSpeaking && (
-                      <div className="mr-auto flex items-center gap-2 rounded-2xl bg-gold/15 px-4 py-2 font-body text-xs text-charcoal font-semibold border border-gold/30">
-                        <Volume2 className="h-4 w-4 text-gold animate-bounce" /> Takii bol raha hai...
-                      </div>
-                    )}
-
-                    {error && (
-                      <div className="rounded-2xl bg-red-50 p-4 font-body text-xs text-red-600 border border-red-200">
-                        <p className="font-bold">⚠️ Connection Issue:</p>
-                        <p className="mt-0.5">{error}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Audio Controls & Pulse Ring */}
-                  <div className="flex flex-col items-center justify-center gap-3 border-t border-charcoal/10 bg-white px-6 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-                    <div className="relative flex items-center justify-center">
-                      {/* Pulsing ring when connected/speaking */}
-                      {isConnected && (
-                        <motion.div
-                          className={`absolute -inset-3 rounded-full ${
-                            isSpeaking ? "bg-gold/40" : "bg-emerald-400/30"
-                          }`}
-                          animate={{ scale: [1, 1.35, 1], opacity: [0.7, 0.2, 0.7] }}
-                          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                        />
-                      )}
-
-                      <motion.button
-                        type="button"
-                        disabled={isConnecting}
-                        onClick={isConnected ? handleEndSession : handleStartSession}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.94 }}
-                        className={`relative flex h-18 w-18 items-center justify-center rounded-full text-cream shadow-[0_12px_28px_rgba(0,0,0,0.3)] transition cursor-pointer ${
-                          isConnecting
-                            ? "bg-charcoal/60 cursor-not-allowed"
-                            : isConnected
-                              ? "bg-charcoal hover:bg-charcoal/90 ring-4 ring-emerald-400/50"
-                              : "bg-flame hover:bg-flame-dark ring-4 ring-gold/40"
-                        }`}
-                        aria-label={isConnected ? "Call khatam karein" : "Baat shuru karein"}
-                      >
-                        {isConnecting ? (
-                          <Loader2 className="h-7 w-7 animate-spin" />
-                        ) : isConnected ? (
-                          <Square className="h-7 w-7 text-red-400" />
-                        ) : (
-                          <Mic className="h-8 w-8 text-cream" />
-                        )}
-                      </motion.button>
-                    </div>
-
-                    <div className="text-center">
-                      <p className="font-display text-xs font-bold text-charcoal uppercase tracking-wider">
-                        {isConnecting
-                          ? "Connecting..."
-                          : isConnected
-                            ? isSpeaking
-                              ? "Takii is speaking..."
-                              : "Sun raha hoon... Boliye!"
-                            : "Tap mic to talk in Urdu"}
-                      </p>
-                      <p className="font-body text-[0.7rem] text-charcoal/60 mt-0.5">
-                        {isConnected ? "Microphone active · Real-time duplex" : "Automatic order placement & status tracking"}
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
-
-/* ─── Export wrapped in ConversationProvider for SSR & Self-contained safety ─── */
 export function VoiceOrderButton() {
+  const reduceMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [listening, setListening] = useState(false);
+  const [turns, setTurns] = useState<Turn[]>([WELCOME_TURN]);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setTurns(readSavedTurns());
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(turns));
+  }, [mounted, turns]);
+
+  useEffect(() => {
+    if (!open) return;
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 180);
+    return () => window.clearTimeout(focusTimer);
+  }, [open]);
+
+  useEffect(() => {
+    transcriptRef.current?.scrollTo({
+      top: transcriptRef.current.scrollHeight,
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  }, [reduceMotion, turns]);
+
+  const closePanel = () => {
+    setListening(false);
+    setOpen(false);
+  };
+
+  const sendMessage = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const content = draft.trim();
+    if (!content) return;
+    setTurns((current) => [
+      ...current,
+      { id: `guest-${Date.now()}`, role: "user", content },
+    ]);
+    setDraft("");
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  };
 
   if (!mounted) return null;
 
   return (
-    <ConversationProvider>
-      <VoiceOrderButtonInner />
-    </ConversationProvider>
+    <>
+      <motion.div
+        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.92 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 280, damping: 24, delay: 0.35 }}
+        className="fixed right-4 z-[150] sm:right-7"
+        style={{ bottom: "calc(1rem + var(--kmg-cart-bar, 0px) + env(safe-area-inset-bottom))" }}
+      >
+        <Button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Chat with Takiii"
+          className="group h-14 rounded-full border-2 border-cream/80 bg-flame px-2.5 pr-4 text-cream shadow-[var(--shadow-pill)] hover:bg-flame-dark sm:h-16 sm:px-3 sm:pr-5"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream text-flame shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--color-flame)_22%,transparent)] sm:h-11 sm:w-11">
+            <Flame className="h-5 w-5 fill-current sm:h-6 sm:w-6" aria-hidden="true" />
+          </span>
+          <span className="flex min-w-0 flex-col items-start text-left leading-tight">
+            <span className="font-display text-sm font-extrabold tracking-normal">Takiii</span>
+            <span className="font-body text-[0.65rem] font-bold text-cream/80 sm:text-xs">Ask about the menu</span>
+          </span>
+          <MessageCircle className="ml-1 h-5 w-5 transition-transform group-hover:-rotate-6" aria-hidden="true" />
+        </Button>
+      </motion.div>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Close Takiii chat"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closePanel}
+              className="fixed inset-0 z-[290] cursor-default bg-charcoal/45 backdrop-blur-sm sm:bg-charcoal/20"
+            />
+
+            <motion.section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="takiii-title"
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 34, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 340, damping: 30 }}
+              className="fixed inset-x-0 bottom-0 z-[300] flex max-h-[82svh] min-h-[34rem] flex-col overflow-hidden rounded-t-2xl border border-charcoal/15 bg-cream shadow-[0_-18px_60px_oklch(0.28_0.03_40/0.35)] sm:inset-x-auto sm:bottom-24 sm:right-7 sm:h-[36rem] sm:min-h-0 sm:w-[25rem] sm:rounded-2xl"
+            >
+              <header className="relative flex items-center gap-3 overflow-hidden bg-flame px-4 py-4 text-cream">
+                <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full border-[18px] border-cream/10" />
+                <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-cream text-flame shadow-[var(--shadow-card)]">
+                  <Flame className="h-6 w-6 fill-current" aria-hidden="true" />
+                </span>
+                <div className="relative min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h2 id="takiii-title" className="font-display text-lg font-extrabold tracking-normal">Takiii</h2>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-charcoal/18 px-2 py-0.5 font-body text-[0.65rem] font-bold">
+                      <span className="h-1.5 w-1.5 rounded-full bg-cream" /> Guest chat
+                    </span>
+                  </div>
+                  <p className="truncate font-body text-xs font-semibold text-cream/80">Kennedy&apos;s food companion</p>
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={closePanel}
+                  aria-label="Close"
+                  className="relative rounded-full text-cream hover:bg-cream/15 hover:text-cream"
+                >
+                  <X aria-hidden="true" />
+                </Button>
+              </header>
+
+              <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto bg-cream px-4 py-5" aria-live="polite">
+                <div className="flex items-center gap-3 text-charcoal/50">
+                  <span className="h-px flex-1 bg-charcoal/10" />
+                  <span className="font-body text-[0.65rem] font-extrabold uppercase tracking-wider">Today</span>
+                  <span className="h-px flex-1 bg-charcoal/10" />
+                </div>
+
+                {turns.map((turn) => (
+                  <motion.div
+                    key={turn.id}
+                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={turn.role === "user" ? "flex justify-end" : "flex items-end gap-2"}
+                  >
+                    {turn.role === "assistant" && (
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-flame text-cream">
+                        <Flame className="h-4 w-4 fill-current" aria-hidden="true" />
+                      </span>
+                    )}
+                    <div
+                      className={
+                        turn.role === "user"
+                          ? "max-w-[82%] rounded-2xl rounded-br-sm bg-charcoal px-4 py-3 font-body text-sm leading-relaxed text-cream shadow-[var(--shadow-card)]"
+                          : "max-w-[82%] rounded-2xl rounded-bl-sm border border-charcoal/10 bg-cream-deep px-4 py-3 font-body text-sm leading-relaxed text-charcoal"
+                      }
+                    >
+                      {turn.content}
+                    </div>
+                  </motion.div>
+                ))}
+
+                {listening && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mx-auto flex w-fit items-center gap-2 rounded-full bg-flame/10 px-4 py-2 font-body text-xs font-extrabold text-flame"
+                  >
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-flame" /> Listening…
+                  </motion.div>
+                )}
+              </div>
+
+              <form onSubmit={sendMessage} className="border-t border-charcoal/10 bg-cream-deep p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <div className="flex items-end gap-2 rounded-2xl border border-charcoal/15 bg-cream p-2 shadow-[inset_0_1px_0_color-mix(in_oklch,var(--color-cream)_80%,transparent)] focus-within:border-flame/55">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setListening((current) => !current)}
+                    aria-label={listening ? "Stop microphone" : "Use microphone"}
+                    title={listening ? "Stop microphone" : "Use microphone"}
+                    className={listening ? "shrink-0 rounded-full bg-flame text-cream hover:bg-flame-dark hover:text-cream" : "shrink-0 rounded-full text-flame hover:bg-flame/10 hover:text-flame"}
+                  >
+                    {listening ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}
+                  </Button>
+                  <textarea
+                    ref={inputRef}
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        event.currentTarget.form?.requestSubmit();
+                      }
+                    }}
+                    rows={1}
+                    placeholder="Message Takiii…"
+                    aria-label="Message Takiii"
+                    className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-1 py-2 font-body text-sm text-charcoal outline-none placeholder:text-charcoal/45"
+                  />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={!draft.trim()}
+                    aria-label="Send message"
+                    className="shrink-0 rounded-full bg-charcoal text-cream hover:bg-flame"
+                  >
+                    <ArrowUp aria-hidden="true" />
+                  </Button>
+                </div>
+              </form>
+            </motion.section>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

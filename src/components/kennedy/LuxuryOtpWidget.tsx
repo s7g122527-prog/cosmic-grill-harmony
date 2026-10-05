@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Crown, KeyRound, Loader2, Lock, MessageSquare, Phone, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { OtpCodeFields } from "@/components/kennedy/OtpCodeFields";
 import { fetchPhoneOtpConfig, requestPhoneCode, verifyPhoneCode, type PhoneOtpConfig } from "@/lib/auth";
 import { normalizePkPhone } from "@/lib/validation";
 
@@ -33,7 +35,6 @@ export function LuxuryOtpWidget({
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
   const cleanPhone = normalizePkPhone(phone.trim());
 
   // Check WhatsApp connection status on mount
@@ -54,13 +55,6 @@ export function LuxuryOtpWidget({
   }, []);
 
   const isWaAvailable = config.whatsapp_connected;
-
-  // Auto-focus input when sent
-  useEffect(() => {
-    if (sent && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 150);
-    }
-  }, [sent]);
 
   const handleSend = async (overrideChannel?: "whatsapp" | "sms") => {
     if (!cleanPhone || cleanPhone.length < 10) {
@@ -257,7 +251,7 @@ export function LuxuryOtpWidget({
             </div>
           )}
 
-          <button
+          <Button
             type="button"
             disabled={sending}
             onClick={() => handleSend()}
@@ -279,7 +273,7 @@ export function LuxuryOtpWidget({
                 : isWaAvailable && selectedChannel === "whatsapp"
                   ? "Send WhatsApp Code"
                   : "Send SMS Code"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -304,30 +298,17 @@ export function LuxuryOtpWidget({
               </span>
             </div>
 
-            {/* High-visibility large input box with prominent styling */}
+            {/* Six clear cells support keyboard entry, paste and mobile autofill. */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              <div className="relative flex-1">
-                <input
-                  id="otp-code-input"
-                  ref={inputRef}
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  value={code}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-                    setCode(val);
-                    if (val.length === 6) {
-                      handleVerify(val);
-                    }
-                  }}
-                  placeholder="• • • • • •"
-                  className="w-full rounded-2xl border-2 border-charcoal/20 bg-cream/50 px-4 py-3 text-center font-mono text-2xl sm:text-3xl font-black tracking-[0.45em] text-charcoal placeholder:text-charcoal/25 focus:border-flame focus:bg-white focus:outline-none focus:ring-4 focus:ring-flame/15 transition-all shadow-inner"
-                />
-              </div>
+              <OtpCodeFields
+                value={code}
+                onChange={setCode}
+                onComplete={(value) => void handleVerify(value)}
+                disabled={verifying}
+                className="flex-1"
+              />
 
-              <button
+              <Button
                 type="button"
                 disabled={verifying || code.length < 6}
                 onClick={() => handleVerify()}
@@ -335,7 +316,7 @@ export function LuxuryOtpWidget({
               >
                 {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
                 {verifying ? "Verifying..." : "Verify & Continue"}
-              </button>
+              </Button>
             </div>
 
             {/* Sub-bar with helper actions */}

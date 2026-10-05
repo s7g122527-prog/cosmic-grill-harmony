@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 import { Eye, EyeOff, KeyRound, Lock, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 

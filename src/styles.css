@@ -1484,6 +1484,40 @@
 .takiii-launcher__spark--one { left: 12%; top: -8%; }
 .takiii-launcher__spark--two { right: 17%; top: -13%; animation-delay: .8s; }
 
+.checkout-stage {
+  background:
+    linear-gradient(90deg, oklch(from var(--color-flame) l c h / .035) 1px, transparent 1px),
+    linear-gradient(180deg, var(--color-cream), var(--color-cream-deep));
+  background-size: 48px 48px, auto;
+}
+.checkout-progress { display: flex; align-items: center; gap: .5rem; }
+.checkout-progress li { display: flex; align-items: center; gap: .4rem; color: oklch(from var(--color-charcoal) l c h / .45); font-family: var(--font-display); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.checkout-progress li:not(:last-child)::after { content: ""; width: 1.25rem; height: 1px; margin-left: .25rem; background: oklch(from var(--color-charcoal) l c h / .18); }
+.checkout-progress li > span { display: grid; width: 1.7rem; height: 1.7rem; place-items: center; border: 1px solid oklch(from var(--color-charcoal) l c h / .18); border-radius: 999px; background: var(--color-cream); }
+.checkout-progress li > span svg { width: .85rem; height: .85rem; }
+.checkout-progress li.is-active { color: var(--color-flame); }
+.checkout-progress li.is-active > span { border-color: var(--color-flame); box-shadow: 0 0 0 4px oklch(from var(--color-flame) l c h / .1); }
+.checkout-progress li.is-complete { color: var(--color-charcoal); }
+.checkout-progress li.is-complete > span { border-color: var(--color-charcoal); background: var(--color-charcoal); color: var(--color-cream); }
+.checkout-item { box-shadow: 0 10px 24px -22px var(--color-charcoal); }
+.checkout-choice { position: relative; overflow: hidden; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+.checkout-choice:hover { transform: translateY(-2px); }
+.checkout-choice.is-selected { box-shadow: 0 10px 20px -16px var(--color-flame); }
+.checkout-summary { box-shadow: 0 24px 48px -36px var(--color-charcoal); }
+.payment-choice { transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
+.payment-choice.is-selected { box-shadow: 0 12px 26px -20px var(--color-flame); }
+
+@media (max-width: 639px) {
+  .checkout-progress { width: 100%; justify-content: space-between; }
+  .checkout-progress li { gap: .3rem; font-size: .62rem; }
+  .checkout-progress li:not(:last-child)::after { width: .65rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .takiii-launcher::before,
+  .takiii-launcher__spark { animation: none; }
+}
+
 @utility auth-card {
   border: 1px solid oklch(0.28 0.03 40 / 0.12);
   border-radius: 2rem;

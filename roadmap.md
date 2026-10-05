@@ -12,3 +12,8 @@
 - [x] Restyle the floating Takiii launcher and chat panel in the storefront flame, cream, and charcoal theme.
 - [x] Remove the login gate and provide one guest chat saved in this browser.
 - [x] Add a microphone control as presentation-only UI without changing AI services.
+
+# Homepage offer and menu-book UX
+- [x] Replace cluttered offer copy with clear Crazy Deal and Today's Bonus ribbons.
+- [x] Keep the existing menu-book concept while adding caddy guidance and systematic navigation.
+- [x] Verify the full interaction and layout on desktop and phone; cover, next/previous progression, caddy status, and dish spread render without page errors.

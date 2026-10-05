@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
+import { ChevronLeft, ChevronRight, Headphones, RotateCcw } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { fetchDishes, DISHES, BACKEND_MENU } from "@/lib/menu";
 import { addToCart } from "@/lib/cart";
 import { isMuted, playSfx } from "@/lib/sfx";
@@ -51,8 +53,8 @@ function speak(text: string) {
 
 export function MenuBook() {
   const [dishes, setDishes] = useState<BookDish[]>(() => (BACKEND_MENU ? [] : formatDishes(DISHES)));
-  const pageCount = dishes.length + 1;
-  const [open, setOpen] = useState<boolean[]>(() => Array(pageCount).fill(false));
+  const [currentPage, setCurrentPage] = useState(0);
+  const open = Array.from({ length: dishes.length }, (_, index) => index < currentPage);
   const coverOpen = open[0];
   const lockRef = useRef(0);
 
@@ -62,7 +64,7 @@ export function MenuBook() {
         if (Array.isArray(data) && data.length > 0) {
           const fresh = formatDishes(data);
           setDishes(fresh);
-          setOpen(Array(fresh.length + 1).fill(false));
+          setCurrentPage(0);
         }
       })
       .catch(() => {});
@@ -82,26 +84,38 @@ export function MenuBook() {
 
       // Decide the outcome here (not inside the state updater) so the sound
       // always matches the page that is being revealed right now.
-      const willOpen = !open[index];
-      setOpen((prev) => prev.map((value, i) => (i === index ? !value : value)));
+      const willOpen = currentPage <= index;
+      const nextPage = willOpen ? index + 1 : index;
+      setCurrentPage(nextPage);
       playSfx(willOpen ? "swoosh" : "pop");
       if (typeof window !== "undefined") window.speechSynthesis?.cancel();
       if (willOpen && voice) {
         speak(voice);
-      } else if (!willOpen && index > 1 && dishes[index - 2]) {
-        speak(`Previous recipe: ${dishes[index - 2].name}`);
+      } else if (!willOpen && index > 0) {
+        const previousDish = dishes[index - 1];
+        if (previousDish) speak(`Previous recipe: ${previousDish.name}`);
       }
     },
-    [open, dishes],
+    [currentPage, dishes],
   );
 
   const closeAll = useCallback(() => {
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
-    setOpen((prev) => {
-      if (prev.some(Boolean)) playSfx("pop");
-      return Array(pageCount).fill(false);
-    });
-  }, []);
+    if (currentPage > 0) playSfx("pop");
+    setCurrentPage(0);
+  }, [currentPage]);
+
+  const movePage = useCallback(
+    (direction: -1 | 1) => {
+      const nextPage = Math.min(dishes.length, Math.max(0, currentPage + direction));
+      if (nextPage === currentPage) return;
+      setCurrentPage(nextPage);
+      playSfx(direction > 0 ? "swoosh" : "pop");
+      const revealedDish = dishes[nextPage - 1];
+      if (direction > 0 && revealedDish) speak(revealedDish.name);
+    },
+    [currentPage, dishes],
+  );
 
   const order = useCallback((slug: string, name: string) => {
     addToCart(slug);
@@ -112,7 +126,7 @@ export function MenuBook() {
   if (dishes.length === 0) return null;
 
   return (
-    <section id="menu-book" className="menu-scene" onClick={closeAll}>
+    <section id="menu-book" className="menu-scene">
       <div className="menu-scene__glow" aria-hidden="true" />
 
       <div className="menu-bg-type" aria-hidden="true">
@@ -121,14 +135,22 @@ export function MenuBook() {
       </div>
 
       <header className="menu-head">
-        <span className="menu-head__kicker">Est. 2014 · Charcoal &amp; Dum Kitchen</span>
-        <h2 className="menu-head__title">The Menu Book</h2>
+        <span className="menu-head__kicker"><i aria-hidden="true" /> Est. 2014 · Charcoal &amp; Dum Kitchen</span>
+        <h2 className="menu-head__title">The <em>Menu</em> Book</h2>
         <p className="menu-head__hint">
           {coverOpen
-            ? "Keep flipping — tap outside to close the book"
-            : "Tap the cover to open the menu"}
+            ? "Use the caddy controls to browse one dish at a time"
+            : "Tap the gold seal to explore our kitchen favourites"}
         </p>
       </header>
+
+      <aside className="menu-caddy" aria-label="Menu caddy guide">
+        <img src={caddyAvatar} alt="Kennedy menu caddy" loading="lazy" decoding="async" />
+        <span>
+          <strong>Your menu caddy</strong>
+          {currentPage === 0 ? "Open the book and I’ll guide you." : `Showing dish ${Math.min(currentPage, dishes.length)} of ${dishes.length}`}
+        </span>
+      </aside>
 
       <div className={`menu-book${open.some(Boolean) ? " is-open" : ""}`}>
         {/* Cover Sheet (Sheet 0) */}
@@ -141,7 +163,7 @@ export function MenuBook() {
             event.stopPropagation();
             toggle(
               0,
-              `Recipe 1: ${dishes[0]!.name}. ${dishes[0]!.description}. Price: ${dishes[0]!.price}`
+              `Recipe 1: ${dishes[0]?.name ?? "Kennedy special"}. ${dishes[0]?.description ?? ""}. Price: ${dishes[0]?.price ?? ""}`
             );
           }}
           onKeyDown={(event) => {
@@ -150,7 +172,7 @@ export function MenuBook() {
             event.stopPropagation();
             toggle(
               0,
-              `Recipe 1: ${dishes[0]!.name}. ${dishes[0]!.description}. Price: ${dishes[0]!.price}`
+              `Recipe 1: ${dishes[0]?.name ?? "Kennedy special"}. ${dishes[0]?.description ?? ""}. Price: ${dishes[0]?.price ?? ""}`
             );
           }}
           aria-pressed={coverOpen}
@@ -176,7 +198,7 @@ export function MenuBook() {
                   <path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v5a5 5 0 0 1-5 5h-2.2a4 4 0 0 1-3.1-1.5L5 15.5a1.6 1.6 0 0 1 2.3-2.2L9 15" />
                 </svg>
               </span>
-              Tap to explore
+              Open menu
             </span>
             <span className="menu-cover__pulse" aria-hidden="true" />
           </div>
@@ -187,16 +209,18 @@ export function MenuBook() {
               <span className="menu-page__no">
                 RECIPE 01 / {String(dishes.length).padStart(2, "0")}
               </span>
-              <button
+              <Button
                 type="button"
-                className="text-[10px] uppercase font-bold text-lux bg-lux/10 hover:bg-lux/20 px-2 py-1 rounded border border-lux/30 transition-colors flex items-center gap-1"
+                variant="ghost"
+                size="sm"
+                className="menu-page__listen"
                 onClick={(event) => {
                   event.stopPropagation();
                   speak(`${dishes[0]!.name}. ${dishes[0]!.description}. Price: ${dishes[0]!.price}`);
                 }}
               >
-                🔊 Listen Recipe
-              </button>
+                <Headphones aria-hidden="true" /> Listen
+              </Button>
             </div>
             <span className="menu-page__backname">{dishes[0]!.name}</span>
             <span className="menu-page__rule" />
@@ -208,7 +232,7 @@ export function MenuBook() {
             </div>
             <div className="menu-page__buy">
               <span className="menu-page__backprice">{dishes[0]!.price}</span>
-              <button
+              <Button
                 type="button"
                 data-sfx="cart"
                 className="menu-page__order"
@@ -218,7 +242,7 @@ export function MenuBook() {
                 }}
               >
                 Order this
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -240,7 +264,7 @@ export function MenuBook() {
                 event.stopPropagation();
                 toggle(
                   index,
-                  `Recipe ${index + 1}: ${nextRecipeDish!.name}. ${nextRecipeDish!.description}. Price: ${nextRecipeDish!.price}`
+                  `Recipe ${index + 1}: ${nextRecipeDish?.name ?? "Kennedy special"}. ${nextRecipeDish?.description ?? ""}. Price: ${nextRecipeDish?.price ?? ""}`
                 );
               }}
               onKeyDown={(event) => {
@@ -249,11 +273,11 @@ export function MenuBook() {
                 event.stopPropagation();
                 toggle(
                   index,
-                  `Recipe ${index + 1}: ${nextRecipeDish!.name}. ${nextRecipeDish!.description}. Price: ${nextRecipeDish!.price}`
+                  `Recipe ${index + 1}: ${nextRecipeDish?.name ?? "Kennedy special"}. ${nextRecipeDish?.description ?? ""}. Price: ${nextRecipeDish?.price ?? ""}`
                 );
               }}
               aria-pressed={open[index]}
-              aria-label={`${nextRecipeDish!.name} — ${nextRecipeDish!.price}`}
+              aria-label={`${nextRecipeDish?.name ?? "Kennedy special"} — ${nextRecipeDish?.price ?? ""}`}
             >
               {/* FRONT OF SHEET: displays Recipe i Photo on the RIGHT side */}
               <div className="menu-page menu-page--front">
@@ -273,16 +297,18 @@ export function MenuBook() {
                   <span className="menu-page__no">
                     RECIPE {String(index + 1).padStart(2, "0")} / {String(dishes.length).padStart(2, "0")}
                   </span>
-                  <button
+                  <Button
                     type="button"
-                    className="text-[10px] uppercase font-bold text-lux bg-lux/10 hover:bg-lux/20 px-2 py-1 rounded border border-lux/30 transition-colors flex items-center gap-1"
+                    variant="ghost"
+                    size="sm"
+                    className="menu-page__listen"
                     onClick={(event) => {
                       event.stopPropagation();
-                      speak(`${nextRecipeDish!.name}. ${nextRecipeDish!.description}. Price: ${nextRecipeDish!.price}`);
+                      if (nextRecipeDish) speak(`${nextRecipeDish.name}. ${nextRecipeDish.description}. Price: ${nextRecipeDish.price}`);
                     }}
                   >
-                    🔊 Listen Recipe
-                  </button>
+                    <Headphones aria-hidden="true" /> Listen
+                  </Button>
                 </div>
                 <span className="menu-page__backname">{nextRecipeDish!.name}</span>
                 <span className="menu-page__rule" />
@@ -294,7 +320,7 @@ export function MenuBook() {
                 </div>
                 <div className="menu-page__buy">
                   <span className="menu-page__backprice">{nextRecipeDish!.price}</span>
-                  <button
+                  <Button
                     type="button"
                     data-sfx="cart"
                     className="menu-page__order"
@@ -304,13 +330,30 @@ export function MenuBook() {
                     }}
                   >
                     Order this
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      <nav className="menu-controls" aria-label="Menu book pages">
+        <Button type="button" size="icon" variant="ghost" onClick={() => movePage(-1)} disabled={currentPage === 0} aria-label="Previous dish">
+          <ChevronLeft aria-hidden="true" />
+        </Button>
+        <div className="menu-controls__progress">
+          <span>{currentPage === 0 ? "Cover" : `Dish ${currentPage}`}</span>
+          <div aria-hidden="true"><i style={{ width: `${Math.max(5, (currentPage / dishes.length) * 100)}%` }} /></div>
+          <small>{currentPage} / {dishes.length}</small>
+        </div>
+        <Button type="button" size="icon" variant="ghost" onClick={() => movePage(1)} disabled={currentPage === dishes.length} aria-label="Next dish">
+          <ChevronRight aria-hidden="true" />
+        </Button>
+        <Button type="button" size="icon" variant="ghost" onClick={closeAll} disabled={currentPage === 0} aria-label="Close menu book">
+          <RotateCcw aria-hidden="true" />
+        </Button>
+      </nav>
 
       <div className="menu-foot">
         <span>Charcoal grill</span>

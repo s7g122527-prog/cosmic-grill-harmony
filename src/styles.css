@@ -10,7 +10,7 @@
   --color-menu-card: var(--color-cream-deep);
   --color-menu-title: var(--color-charcoal);
   --color-menu-text: oklch(from var(--color-charcoal) l c h / 0.72);
-  --color-menu-primary: var(--color-gold);
+  --color-menu-primary: var(--color-flame);
   --color-menu-accent: var(--color-flame);
   --font-menu-heading: "Fredoka One", sans-serif;
   --font-menu-body: "Epilogue", sans-serif;
